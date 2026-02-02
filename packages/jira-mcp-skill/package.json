@@ -1,0 +1,28 @@
+{
+  "name": "@akurait/jira-mcp-skill",
+  "version": "1.0.0",
+  "description": "One-command installer for Jira MCP skill - works with Kiro, Claude, Cursor",
+  "type": "module",
+  "bin": {
+    "jira-mcp-skill": "./build/cli.js"
+  },
+  "files": ["build"],
+  "scripts": {
+    "build": "tsc && chmod +x build/cli.js",
+    "prepare": "npm run build"
+  },
+  "dependencies": {
+    "keytar": "^7.9.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "typescript": "^5.7.2"
+  },
+  "keywords": ["mcp", "jira", "atlassian", "ai", "claude", "kiro", "cursor", "installer"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/akurait/jira-mcp-skill"
+  },
+  "author": "akurait"
+}

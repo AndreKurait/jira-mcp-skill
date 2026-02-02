@@ -1,0 +1,23 @@
+{
+  "name": "@akurait/jira-mcp-server",
+  "version": "1.0.0",
+  "description": "Jira MCP server with secure credential storage",
+  "type": "module",
+  "bin": { "jira-mcp-server": "./build/index.js" },
+  "files": ["build"],
+  "scripts": {
+    "build": "tsc && chmod +x build/index.js",
+    "prepare": "npm run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "axios": "^1.7.9",
+    "keytar": "^7.9.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "typescript": "^5.7.2"
+  },
+  "keywords": ["mcp", "jira", "atlassian", "ai", "claude", "kiro"],
+  "license": "MIT"
+}
