@@ -1,113 +1,103 @@
 # Jira MCP Skill
 
-> **One-command installer for [mcp-atlassian](https://github.com/sooperset/mcp-atlassian) with project-specific context**
-
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-
-This skill package:
-1. **Installs** the [mcp-atlassian](https://github.com/sooperset/mcp-atlassian) MCP server
-2. **Configures** your AI agents (Kiro, Claude Desktop, Cursor)
-3. **Provides** project-specific context via SKILL.md
+> **One-command installer for [mcp-atlassian](https://github.com/sooperset/mcp-atlassian) with MIGRATIONS project context**
 
 ## Quick Install
 
 ```bash
-npx @andrekurait/jira-mcp-skill
-```
-
-Interactive prompts for:
-- Jira URL
-- Email
-- API Token
-- Default project key
-
-## Automatic Install
-
-```bash
 npx @andrekurait/jira-mcp-skill \
-  --url https://yourcompany.atlassian.net \
-  --email your@email.com \
-  --token your-api-token \
+  --url https://opensearch.atlassian.net \
+  --email akurait@amazon.com \
+  --token YOUR_API_TOKEN \
   --project MIGRATIONS \
   --guide ./skill/SKILL.md
 ```
 
-## With Project Guide
-
-Include your project-specific context:
-
+Or interactive mode:
 ```bash
-npx @andrekurait/jira-mcp-skill --guide ./my-project-guide.md
+npx @andrekurait/jira-mcp-skill
 ```
-
-The guide is installed to `~/.jira-mcp-skill/SKILL.md` and symlinked to Kiro's steering directory.
 
 ## What Gets Installed
 
-### MCP Server: mcp-atlassian
+1. **[mcp-atlassian](https://github.com/sooperset/mcp-atlassian)** - Jira/Confluence MCP server
+2. **Agent configs** - Kiro, Claude Desktop, Cursor auto-configured
+3. **SKILL.md** - MIGRATIONS project context symlinked to `~/.kiro/steering/`
 
-The installer configures [sooperset/mcp-atlassian](https://github.com/sooperset/mcp-atlassian) which provides:
+## MIGRATIONS Project Quick Reference
 
-| Jira Tools | Confluence Tools |
-|------------|------------------|
-| `jira_search` - JQL search | `confluence_search` - CQL search |
-| `jira_get_issue` - Get details | `confluence_get_page` - Get page |
-| `jira_create_issue` - Create | `confluence_create_page` - Create |
-| `jira_update_issue` - Update | `confluence_update_page` - Update |
-| `jira_transition_issue` - Status | `confluence_add_comment` - Comment |
+| Field | Value |
+|-------|-------|
+| Project Key | `MIGRATIONS` |
+| URL | https://opensearch.atlassian.net/jira/software/c/projects/MIGRATIONS |
+| Board ID | `39` (for sprints) |
+| Story Points | `customfield_10032` |
+| Sprint Field | `customfield_10020` |
+| Current Sprint | Feb 2026 (ID: `314`) |
 
-### Project Context: SKILL.md
+### Common Commands
 
-The included `skill/SKILL.md` contains MIGRATIONS project specifics:
-- Project key, board IDs, sprint info
-- Custom fields (Story Points: `customfield_10032`)
-- Components, workflow statuses, versions
-- Team members, JQL examples
-- Ticket writing best practices
+```
+# Search my open issues
+jira_search("project = MIGRATIONS AND assignee = currentUser() AND status != Done")
 
-## Agent Configuration
+# Create a story
+jira_create_issue(
+  project="MIGRATIONS",
+  summary="Implement feature X",
+  issue_type="Story",
+  fields={"fixVersions": [{"id": "10021"}]}  # not-scheduled-for-release
+)
 
-The installer updates these config files:
+# Add to sprint
+jira_update_issue("MIGRATIONS-XXX", fields={"customfield_10020": 314})
 
-| Agent | Config Path |
-|-------|-------------|
-| Kiro | `~/.kiro/settings/mcp.json` |
-| Claude Desktop | `~/Library/Application Support/Claude/claude_desktop_config.json` |
-| Cursor | `~/.cursor/mcp.json` |
+# Set story points
+jira_update_issue("MIGRATIONS-XXX", fields={"customfield_10032": 5})
+
+# Transition to In Progress
+jira_transition_issue("MIGRATIONS-XXX", "In Progress")
+```
+
+### Components
+- **RFS** - Reindex from Snapshot
+- **CaptureProxy** - Traffic capture proxy
+- **Replayer** - Event replay to target
+- **Migration Console** - Workflow UI
+- **Deployment** - IaC and deployment
+
+### Workflow
+```
+TRIAGE → Needs Definition → Needs Refinement → To Do → In Progress → Ready for Review → Under Review → Done
+```
+
+### Versions
+- MAv2.x - Current development
+- MAv3.0 - Autoscaling (2025-02-21)
+- MAv4.0 - Migration Console UI (2025-08-29)
 
 ## Getting an API Token
 
 1. Go to [Atlassian API Tokens](https://id.atlassian.com/manage-profile/security/api-tokens)
-2. Create token
-3. Copy (shown only once)
+2. Create token → Copy it
 
-## Project Structure
+## Agent Config Locations
 
-```
-jira-mcp-skill/
-├── packages/jira-mcp-skill/   # npm installer
-│   └── src/cli.ts
-├── skill/
-│   └── SKILL.md               # MIGRATIONS project guide
-└── README.md
-```
+| Agent | Path |
+|-------|------|
+| Kiro | `~/.kiro/settings/mcp.json` |
+| Claude | `~/Library/Application Support/Claude/claude_desktop_config.json` |
+| Cursor | `~/.cursor/mcp.json` |
 
-## Customizing for Your Project
+## Full SKILL.md
 
-1. Fork this repo
-2. Edit `skill/SKILL.md` with your project details
-3. Run installer with `--guide skill/SKILL.md`
-
-## Dependencies
-
-- [mcp-atlassian](https://github.com/sooperset/mcp-atlassian) - The actual MCP server
-- [uv](https://github.com/astral-sh/uv) - Python package manager (for `uvx`)
+See [skill/SKILL.md](skill/SKILL.md) for complete project guide including:
+- All 20 components with descriptions
+- Custom field IDs
+- Team members
+- JQL examples
+- Ticket writing templates
 
 ## License
 
 MIT
-
-## Credits
-
-- [sooperset/mcp-atlassian](https://github.com/sooperset/mcp-atlassian) - MCP server for Atlassian
-- [Orchestra-Research/AI-research-SKILLs](https://github.com/Orchestra-Research/AI-research-SKILLs) - Skill pattern inspiration
