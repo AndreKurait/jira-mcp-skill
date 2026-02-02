@@ -3,8 +3,12 @@ import readline from 'readline';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import https from 'https';
 
+const VERSION = '1.0.0';
+const GITHUB_REPO = 'AndreKurait/jira-mcp-skill';
 const SKILL_DIR = path.join(os.homedir(), '.jira-mcp-skill');
+const VERSION_FILE = path.join(SKILL_DIR, '.version');
 
 const AGENTS = {
   kiro: { name: 'Kiro', configPath: path.join(os.homedir(), '.kiro', 'settings', 'mcp.json'), configDir: path.join(os.homedir(), '.kiro', 'settings') },
@@ -14,6 +18,36 @@ const AGENTS = {
 
 const colors = { reset: '\x1b[0m', green: '\x1b[32m', yellow: '\x1b[33m', blue: '\x1b[34m', red: '\x1b[31m', cyan: '\x1b[36m' };
 const log = (msg: string, color = colors.reset) => console.log(`${color}${msg}${colors.reset}`);
+
+async function checkForUpdates(): Promise<{ latest: string; current: string; outdated: boolean } | null> {
+  return new Promise((resolve) => {
+    const req = https.get(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`, {
+      headers: { 'User-Agent': 'jira-mcp-skill' }
+    }, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        try {
+          const release = JSON.parse(data);
+          const latest = release.tag_name?.replace(/^v/, '') || VERSION;
+          const outdated = latest !== VERSION;
+          resolve({ latest, current: VERSION, outdated });
+        } catch { resolve(null); }
+      });
+    });
+    req.on('error', () => resolve(null));
+    req.setTimeout(3000, () => { req.destroy(); resolve(null); });
+  });
+}
+
+function getInstalledVersion(): string | null {
+  try { return fs.readFileSync(VERSION_FILE, 'utf8').trim(); } catch { return null; }
+}
+
+function saveInstalledVersion() {
+  if (!fs.existsSync(SKILL_DIR)) fs.mkdirSync(SKILL_DIR, { recursive: true });
+  fs.writeFileSync(VERSION_FILE, VERSION);
+}
 
 function prompt(q: string): Promise<string> {
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
@@ -145,6 +179,20 @@ Examples:
 async function main() {
   const args = process.argv.slice(2);
   if (args.includes('--help') || args.includes('-h')) { printHelp(); return; }
+  if (args.includes('--version') || args.includes('-v')) { console.log(VERSION); return; }
+
+  // Check for updates on startup
+  log(`\n📦 Jira MCP Skill v${VERSION}`, colors.cyan);
+  const update = await checkForUpdates();
+  if (update?.outdated) {
+    log(`\n⚠️  Update available: v${update.current} → v${update.latest}`, colors.yellow);
+    log(`   Run: npx @andrekurait/jira-mcp-skill@latest`, colors.yellow);
+    const yn = await prompt('Continue with current version? (Y/n): ');
+    if (yn.toLowerCase() === 'n') {
+      log('Run: npx @andrekurait/jira-mcp-skill@latest', colors.blue);
+      return;
+    }
+  }
 
   const urlIdx = args.indexOf('--url');
   const emailIdx = args.indexOf('--email');
@@ -175,6 +223,9 @@ async function main() {
   } else {
     log('\n💡 Tip: Use --guide <path> to install a project-specific guide', colors.yellow);
   }
+
+  // Save installed version
+  saveInstalledVersion();
 
   log(`
 ${colors.green}✅ Setup complete!${colors.reset}
