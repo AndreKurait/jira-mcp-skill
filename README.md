@@ -1,211 +1,113 @@
 # Jira MCP Skill
 
-> **One-command installer for Jira integration with AI coding agents**
+> **One-command installer for [mcp-atlassian](https://github.com/sooperset/mcp-atlassian) with project-specific context**
 
-[![npm version](https://badge.fury.io/js/@akurait%2Fjira-mcp-skill.svg)](https://www.npmjs.com/package/@akurait/jira-mcp-skill)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Install Jira tools to **any AI coding agent** (Kiro, Claude Desktop, Cursor) with one command. Credentials are stored securely in your system keychain.
+This skill package:
+1. **Installs** the [mcp-atlassian](https://github.com/sooperset/mcp-atlassian) MCP server
+2. **Configures** your AI agents (Kiro, Claude Desktop, Cursor)
+3. **Provides** project-specific context via SKILL.md
 
 ## Quick Install
 
 ```bash
-npx @akurait/jira-mcp-skill
+npx @andrekurait/jira-mcp-skill
 ```
 
-This launches an interactive installer that:
-- **Prompts** for your Jira URL, email, and API token
-- **Stores** credentials securely in system keychain (macOS Keychain, Windows Credential Manager, Linux Secret Service)
-- **Auto-detects** installed AI agents
-- **Configures** each agent automatically
+Interactive prompts for:
+- Jira URL
+- Email
+- API Token
+- Default project key
 
-## Features
-
-- 🔐 **Secure credential storage** - Uses system keychain, not environment variables
-- 🤖 **Multi-agent support** - Kiro, Claude Desktop, Cursor
-- ⚡ **One-command install** - No manual config file editing
-- 🔄 **Interactive & automatic modes** - CI/CD friendly
-- 🛠️ **Full Jira API** - Create, search, update, transition issues
-
-## Installation Methods
-
-### Interactive Mode (Recommended)
+## Automatic Install
 
 ```bash
-npx @akurait/jira-mcp-skill
-```
-
-You'll be prompted for:
-1. Jira URL (e.g., `https://yourcompany.atlassian.net`)
-2. Email address
-3. API token (hidden input)
-
-### Automatic Mode (CI/CD)
-
-```bash
-npx @akurait/jira-mcp-skill \
+npx @andrekurait/jira-mcp-skill \
   --url https://yourcompany.atlassian.net \
-  --email your-email@company.com \
+  --email your@email.com \
   --token your-api-token \
-  --agents kiro,claude,cursor
+  --project MIGRATIONS \
+  --guide ./skill/SKILL.md
 ```
 
-### Check Status
+## With Project Guide
+
+Include your project-specific context:
 
 ```bash
-npx @akurait/jira-mcp-skill status
+npx @andrekurait/jira-mcp-skill --guide ./my-project-guide.md
 ```
 
-### Uninstall
+The guide is installed to `~/.jira-mcp-skill/SKILL.md` and symlinked to Kiro's steering directory.
 
-```bash
-npx @akurait/jira-mcp-skill uninstall
-```
+## What Gets Installed
 
-## Getting a Jira API Token
+### MCP Server: mcp-atlassian
+
+The installer configures [sooperset/mcp-atlassian](https://github.com/sooperset/mcp-atlassian) which provides:
+
+| Jira Tools | Confluence Tools |
+|------------|------------------|
+| `jira_search` - JQL search | `confluence_search` - CQL search |
+| `jira_get_issue` - Get details | `confluence_get_page` - Get page |
+| `jira_create_issue` - Create | `confluence_create_page` - Create |
+| `jira_update_issue` - Update | `confluence_update_page` - Update |
+| `jira_transition_issue` - Status | `confluence_add_comment` - Comment |
+
+### Project Context: SKILL.md
+
+The included `skill/SKILL.md` contains MIGRATIONS project specifics:
+- Project key, board IDs, sprint info
+- Custom fields (Story Points: `customfield_10032`)
+- Components, workflow statuses, versions
+- Team members, JQL examples
+- Ticket writing best practices
+
+## Agent Configuration
+
+The installer updates these config files:
+
+| Agent | Config Path |
+|-------|-------------|
+| Kiro | `~/.kiro/settings/mcp.json` |
+| Claude Desktop | `~/Library/Application Support/Claude/claude_desktop_config.json` |
+| Cursor | `~/.cursor/mcp.json` |
+
+## Getting an API Token
 
 1. Go to [Atlassian API Tokens](https://id.atlassian.com/manage-profile/security/api-tokens)
-2. Click "Create API token"
-3. Give it a name (e.g., "MCP Skill")
-4. Copy the token (you won't see it again)
-
-## Supported AI Agents
-
-| Agent | Config Location | Status |
-|-------|----------------|--------|
-| **Kiro** | `~/.kiro/settings/mcp.json` | ✅ Supported |
-| **Claude Desktop** | `~/Library/Application Support/Claude/claude_desktop_config.json` | ✅ Supported |
-| **Cursor** | `~/.cursor/mcp.json` | ✅ Supported |
-
-## Available Tools
-
-Once installed, these tools are available in your AI agent:
-
-| Tool | Description |
-|------|-------------|
-| `create_issue` | Create new Jira issues (Story, Task, Bug, Epic) |
-| `search_issues` | Search using JQL (Jira Query Language) |
-| `get_issue` | Get detailed issue information |
-| `update_issue` | Update issue fields |
-| `add_comment` | Add comments to issues |
-| `transition_issue` | Move issues through workflow (To Do → In Progress → Done) |
-| `link_issues` | Create links between issues |
-| `get_projects` | List accessible projects |
-
-## Usage Examples
-
-After installation, ask your AI agent:
-
-```
-"Create a bug in PROJECT for the login page not loading"
-
-"Search for all open issues assigned to me"
-
-"Move PROJ-123 to In Progress"
-
-"Add a comment to PROJ-456 saying the fix is deployed"
-
-"Link PROJ-789 as blocking PROJ-790"
-```
-
-## Security
-
-Credentials are stored using the [keytar](https://github.com/atom/node-keytar) library:
-
-- **macOS**: Keychain Access
-- **Windows**: Credential Manager  
-- **Linux**: Secret Service API (libsecret)
-
-No credentials are stored in:
-- Environment variables
-- Plain text files
-- Agent config files
+2. Create token
+3. Copy (shown only once)
 
 ## Project Structure
 
 ```
 jira-mcp-skill/
-├── packages/
-│   └── jira-mcp-skill/     # npm installer CLI
-│       ├── src/cli.ts      # Interactive/automatic installer
-│       └── package.json
-├── skill/                   # MCP server
-│   ├── src/index.ts        # Jira API implementation
-│   └── package.json
+├── packages/jira-mcp-skill/   # npm installer
+│   └── src/cli.ts
+├── skill/
+│   └── SKILL.md               # MIGRATIONS project guide
 └── README.md
 ```
 
-## Manual Configuration
+## Customizing for Your Project
 
-If you prefer manual setup, add this to your agent's MCP config:
+1. Fork this repo
+2. Edit `skill/SKILL.md` with your project details
+3. Run installer with `--guide skill/SKILL.md`
 
-```json
-{
-  "mcpServers": {
-    "jira": {
-      "command": "node",
-      "args": ["/path/to/jira-mcp-skill/skill/build/index.js"]
-    }
-  }
-}
-```
+## Dependencies
 
-Then store credentials:
-```bash
-# macOS
-security add-generic-password -s "jira-mcp-skill" -a "url" -w "https://x.atlassian.net"
-security add-generic-password -s "jira-mcp-skill" -a "email" -w "you@x.com"
-security add-generic-password -s "jira-mcp-skill" -a "token" -w "your-token"
-```
-
-## Troubleshooting
-
-### "Credentials not configured"
-Run `npx @akurait/jira-mcp-skill` to set up credentials.
-
-### "Tool not found" in agent
-Restart your AI agent after installation.
-
-### Authentication errors
-1. Verify your API token at [Atlassian API Tokens](https://id.atlassian.com/manage-profile/security/api-tokens)
-2. Check the email matches your Atlassian account
-3. Ensure URL has no trailing slash
-
-### Story Points not appearing
-The server uses `customfield_10032` for Story Points. Your Jira instance may use a different field ID.
-
-## Development
-
-```bash
-# Clone the repo
-git clone https://github.com/akurait/jira-mcp-skill
-cd jira-mcp-skill
-
-# Install dependencies
-cd skill && npm install && npm run build
-cd ../packages/jira-mcp-skill && npm install && npm run build
-
-# Test locally
-node packages/jira-mcp-skill/build/cli.js
-```
-
-## Contributing
-
-Contributions welcome! Please:
-1. Fork the repository
-2. Create a feature branch
-3. Submit a pull request
+- [mcp-atlassian](https://github.com/sooperset/mcp-atlassian) - The actual MCP server
+- [uv](https://github.com/astral-sh/uv) - Python package manager (for `uvx`)
 
 ## License
 
-MIT License - See [LICENSE](LICENSE) for details.
+MIT
 
-## Acknowledgments
+## Credits
 
-- [Model Context Protocol](https://modelcontextprotocol.io/) - The MCP standard
-- [Orchestra Research AI-research-SKILLs](https://github.com/Orchestra-Research/AI-research-SKILLs) - Inspiration for the installer pattern
-- [keytar](https://github.com/atom/node-keytar) - Secure credential storage
-
----
-
-**Made with ❤️ for the AI coding community**
+- [sooperset/mcp-atlassian](https://github.com/sooperset/mcp-atlassian) - MCP server for Atlassian
+- [Orchestra-Research/AI-research-SKILLs](https://github.com/Orchestra-Research/AI-research-SKILLs) - Skill pattern inspiration
