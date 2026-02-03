@@ -5,7 +5,7 @@ import path from 'path';
 import os from 'os';
 import https from 'https';
 
-const VERSION = '1.0.1';
+const VERSION = '1.0.2';
 const GITHUB_REPO = 'AndreKurait/jira-mcp-skill';
 const SKILL_DIR = path.join(os.homedir(), '.jira-mcp-skill');
 const VERSION_FILE = path.join(SKILL_DIR, '.version');
@@ -106,13 +106,35 @@ function updateAgentConfig(agentKey: keyof typeof AGENTS, mcpConfig: Record<stri
 function installSkillContext(projectGuide: string) {
   if (!fs.existsSync(SKILL_DIR)) fs.mkdirSync(SKILL_DIR, { recursive: true });
   const skillPath = path.join(SKILL_DIR, 'SKILL.md');
-  fs.writeFileSync(skillPath, projectGuide);
   
-  // Install version check script
-  const checkScript = path.join(__dirname, 'check-update.js');
-  if (fs.existsSync(checkScript)) {
-    fs.copyFileSync(checkScript, path.join(SKILL_DIR, 'check-update.js'));
+  // Inject current version into SKILL.md
+  const guideWithVersion = projectGuide.replace('{{VERSION}}', VERSION);
+  fs.writeFileSync(skillPath, guideWithVersion);
+  
+  // Install version check hook script
+  const hookSrc = path.join(__dirname, 'version-hook.cjs');
+  const hookDest = path.join(SKILL_DIR, 'version-hook.cjs');
+  if (fs.existsSync(hookSrc)) {
+    fs.copyFileSync(hookSrc, hookDest);
+    fs.chmodSync(hookDest, '755');
   }
+  
+  // Add hook to Kiro agent config
+  const kiroAgentDir = path.join(os.homedir(), '.kiro', 'agents');
+  if (!fs.existsSync(kiroAgentDir)) fs.mkdirSync(kiroAgentDir, { recursive: true });
+  const defaultAgentPath = path.join(kiroAgentDir, 'default.json');
+  
+  let agentConfig: any = {};
+  if (fs.existsSync(defaultAgentPath)) {
+    try { agentConfig = JSON.parse(fs.readFileSync(defaultAgentPath, 'utf8')); } catch {}
+  }
+  if (!agentConfig.hooks) agentConfig.hooks = {};
+  if (!agentConfig.hooks.agentSpawn) agentConfig.hooks.agentSpawn = [];
+  // Remove old hook if exists
+  agentConfig.hooks.agentSpawn = agentConfig.hooks.agentSpawn.filter((h: any) => !h.command?.includes('jira-mcp-skill'));
+  // Add new hook
+  agentConfig.hooks.agentSpawn.push({ command: `node ${hookDest}` });
+  fs.writeFileSync(defaultAgentPath, JSON.stringify(agentConfig, null, 2));
   
   const kiroSteering = path.join(os.homedir(), '.kiro', 'steering');
   if (!fs.existsSync(kiroSteering)) fs.mkdirSync(kiroSteering, { recursive: true });

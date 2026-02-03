@@ -1,6 +1,6 @@
 {
   "name": "@andrekurait/jira-mcp-skill",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "One-command installer for mcp-atlassian with project context - works with Kiro, Claude, Cursor",
   "type": "module",
   "bin": {
@@ -10,7 +10,7 @@
     "build"
   ],
   "scripts": {
-    "build": "tsc && chmod +x build/cli.js",
+    "build": "tsc && chmod +x build/cli.js && cp src/version-hook.cjs build/",
     "prepare": "npm run build"
   },
   "devDependencies": {
