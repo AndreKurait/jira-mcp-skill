@@ -5,7 +5,7 @@ import path from 'path';
 import os from 'os';
 import https from 'https';
 
-const VERSION = '1.0.2';
+const VERSION = '1.0.3';
 const GITHUB_REPO = 'AndreKurait/jira-mcp-skill';
 const SKILL_DIR = path.join(os.homedir(), '.jira-mcp-skill');
 const VERSION_FILE = path.join(SKILL_DIR, '.version');
