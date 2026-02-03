@@ -108,6 +108,12 @@ function installSkillContext(projectGuide: string) {
   const skillPath = path.join(SKILL_DIR, 'SKILL.md');
   fs.writeFileSync(skillPath, projectGuide);
   
+  // Install version check script
+  const checkScript = path.join(__dirname, 'check-update.js');
+  if (fs.existsSync(checkScript)) {
+    fs.copyFileSync(checkScript, path.join(SKILL_DIR, 'check-update.js'));
+  }
+  
   const kiroSteering = path.join(os.homedir(), '.kiro', 'steering');
   if (!fs.existsSync(kiroSteering)) fs.mkdirSync(kiroSteering, { recursive: true });
   
