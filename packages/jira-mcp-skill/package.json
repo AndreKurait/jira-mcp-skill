@@ -1,12 +1,14 @@
 {
   "name": "@andrekurait/jira-mcp-skill",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "One-command installer for mcp-atlassian with project context - works with Kiro, Claude, Cursor",
   "type": "module",
   "bin": {
     "jira-mcp-skill": "./build/cli.js"
   },
-  "files": ["build"],
+  "files": [
+    "build"
+  ],
   "scripts": {
     "build": "tsc && chmod +x build/cli.js",
     "prepare": "npm run build"
@@ -15,7 +17,17 @@
     "@types/node": "^22.10.5",
     "typescript": "^5.7.2"
   },
-  "keywords": ["mcp", "jira", "atlassian", "ai", "claude", "kiro", "cursor", "mcp-atlassian", "skill"],
+  "keywords": [
+    "mcp",
+    "jira",
+    "atlassian",
+    "ai",
+    "claude",
+    "kiro",
+    "cursor",
+    "mcp-atlassian",
+    "skill"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",

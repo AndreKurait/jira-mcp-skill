@@ -1,6 +1,6 @@
 # MIGRATIONS Jira Project Guide
 
-> **Skill Version:** 1.0.0 | Check for updates: `npx @andrekurait/jira-mcp-skill@latest --version`
+> **Skill Version:** 1.0.1 | Check for updates: `npx @andrekurait/jira-mcp-skill@latest --version`
 
 ---
 
