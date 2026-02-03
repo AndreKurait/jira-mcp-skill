@@ -5,207 +5,167 @@
 [![GitHub release](https://img.shields.io/github/v/release/AndreKurait/jira-mcp-skill)](https://github.com/AndreKurait/jira-mcp-skill/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-> **One-command installer for [mcp-atlassian](https://github.com/sooperset/mcp-atlassian) with MIGRATIONS project context**
+One-command installer for [mcp-atlassian](https://github.com/sooperset/mcp-atlassian) that configures Jira integration for AI coding agents (Kiro, Claude Desktop, Cursor) with project-specific context.
 
-## Quick Install
+## Features
 
-```bash
-npx @andrekurait/jira-mcp-skill \
-  --url https://opensearch.atlassian.net \
-  --email akurait@amazon.com \
-  --token YOUR_API_TOKEN \
-  --project MIGRATIONS \
-  --guide ./skill/SKILL.md
-```
+- 🚀 **One-command setup** - Installs and configures everything automatically
+- 🤖 **Multi-agent support** - Works with Kiro, Claude Desktop, and Cursor
+- 📚 **Project context** - Includes customizable SKILL.md for project-specific guidance
+- 🔄 **Version checking** - Notifies you when updates are available
+- 🔐 **Secure** - Credentials stored in agent config, not in code
 
-Or interactive mode:
+## Quick Start
+
 ```bash
 npx @andrekurait/jira-mcp-skill
 ```
 
+You'll be prompted for:
+- Jira URL (e.g., `https://yourcompany.atlassian.net`)
+- Email address
+- API token ([get one here](https://id.atlassian.com/manage-profile/security/api-tokens))
+
+## Installation Options
+
+### Interactive Mode
+
+```bash
+npx @andrekurait/jira-mcp-skill
+```
+
+### Automatic Mode (CI/CD friendly)
+
+```bash
+npx @andrekurait/jira-mcp-skill \
+  --url https://yourcompany.atlassian.net \
+  --email your@email.com \
+  --token YOUR_API_TOKEN \
+  --project MYPROJECT \
+  --guide ./path/to/project-guide.md
+```
+
+### CLI Options
+
+| Option | Description |
+|--------|-------------|
+| `--url` | Jira instance URL |
+| `--email` | Jira account email |
+| `--token` | Jira API token |
+| `--project` | Default project key |
+| `--guide` | Path to project-specific SKILL.md |
+| `--version` | Show version |
+| `--help` | Show help |
+
 ## What Gets Installed
 
-1. **[mcp-atlassian](https://github.com/sooperset/mcp-atlassian)** - Jira/Confluence MCP server
-2. **Agent configs** - Kiro, Claude Desktop, Cursor auto-configured
-3. **SKILL.md** - MIGRATIONS project context symlinked to `~/.kiro/steering/`
+1. **[mcp-atlassian](https://github.com/sooperset/mcp-atlassian)** - The MCP server providing Jira/Confluence tools
+2. **Agent configuration** - Auto-configures your AI coding agents
+3. **SKILL.md** - Project context guide (symlinked to `~/.kiro/steering/`)
 
-## MIGRATIONS Project Quick Reference
+## Available Tools
 
-| Field | Value |
-|-------|-------|
-| Project Key | `MIGRATIONS` |
-| URL | https://opensearch.atlassian.net/jira/software/c/projects/MIGRATIONS |
-| Board ID | `39` (for sprints) |
-| Story Points | `customfield_10032` |
-| Sprint Field | `customfield_10020` |
-| Current Sprint | Feb 2026 (ID: `314`) |
+Once installed, your AI agent has access to:
 
-### Common Commands
-
-```
-# Search my open issues
-jira_search("project = MIGRATIONS AND assignee = currentUser() AND status != Done")
-
-# Create a story
-jira_create_issue(
-  project="MIGRATIONS",
-  summary="Implement feature X",
-  issue_type="Story",
-  fields={"fixVersions": [{"id": "10021"}]}  # not-scheduled-for-release
-)
-
-# Add to sprint
-jira_update_issue("MIGRATIONS-XXX", fields={"customfield_10020": 314})
-
-# Set story points
-jira_update_issue("MIGRATIONS-XXX", fields={"customfield_10032": 5})
-
-# Transition to In Progress
-jira_transition_issue("MIGRATIONS-XXX", "In Progress")
-```
-
-### Components
-- **RFS** - Reindex from Snapshot
-- **CaptureProxy** - Traffic capture proxy
-- **Replayer** - Event replay to target
-- **Migration Console** - Workflow UI
-- **Deployment** - IaC and deployment
-
-### Workflow
-```
-TRIAGE → Needs Definition → Needs Refinement → To Do → In Progress → Ready for Review → Under Review → Done
-```
-
-### Versions
-- MAv2.x - Current development
-- MAv3.0 - Autoscaling (2025-02-21)
-- MAv4.0 - Migration Console UI (2025-08-29)
-
-## Getting an API Token
-
-1. Go to [Atlassian API Tokens](https://id.atlassian.com/manage-profile/security/api-tokens)
-2. Create token → Copy it
-
-## Agent Config Locations
-
-| Agent | Path |
-|-------|------|
-| Kiro | `~/.kiro/settings/mcp.json` |
-| Claude | `~/Library/Application Support/Claude/claude_desktop_config.json` |
-| Cursor | `~/.cursor/mcp.json` |
-
-## Full SKILL.md
-
-See [skill/SKILL.md](skill/SKILL.md) for complete project guide including:
-- All 20 components with descriptions
-- Custom field IDs
-- Team members
-- JQL examples
-- Ticket writing templates
+| Jira | Confluence |
+|------|------------|
+| `jira_search` - JQL queries | `confluence_search` - CQL queries |
+| `jira_get_issue` - Get issue details | `confluence_get_page` - Get page content |
+| `jira_create_issue` - Create issues | `confluence_create_page` - Create pages |
+| `jira_update_issue` - Update issues | `confluence_update_page` - Update pages |
+| `jira_transition_issue` - Change status | `confluence_add_comment` - Add comments |
 
 ## Discovery Commands
 
-Use these to query your Jira instance and discover project metadata:
+Query your Jira instance to discover project metadata:
 
-### Users (Team Members)
-```python
-# Find all users who have been assigned issues
-jira_search("project = MIGRATIONS AND assignee IS NOT EMPTY", fields=["assignee"])
-
-# Get specific user profile
-jira_get_user("akurait@amazon.com")
-```
-
-### Versions (Fix Versions / Releases)
-```python
-# List all versions for the project
-jira_get_project("MIGRATIONS")  # includes versions in response
-
-# Find issues by version
-jira_search("project = MIGRATIONS AND fixVersion = 'MAv3.0'")
-
-# Find unscheduled issues
-jira_search("project = MIGRATIONS AND fixVersion = 'not-scheduled-for-release'")
-```
-
-### Components
-```python
-# List all components (included in project response)
-jira_get_project("MIGRATIONS")
-
-# Find issues by component
-jira_search("project = MIGRATIONS AND component = 'RFS'")
-
-# Find issues with no component
-jira_search("project = MIGRATIONS AND component IS EMPTY")
-```
-
-### Epics
 ```python
 # List all epics
-jira_search("project = MIGRATIONS AND issuetype = Epic")
+jira_search("project = MYPROJECT AND issuetype = Epic")
 
-# Find epic with children
-jira_search("project = MIGRATIONS AND issuetype = Epic AND 'Epic Link' IS NOT EMPTY")
+# Find team members
+jira_search("project = MYPROJECT AND assignee IS NOT EMPTY", fields=["assignee"])
 
-# Find issues under a specific epic
-jira_search("parent = MIGRATIONS-1234")
+# Get project info (versions, components)
+jira_get_project("MYPROJECT")
 
-# Find orphan stories (no epic)
-jira_search("project = MIGRATIONS AND issuetype = Story AND parent IS EMPTY")
-```
+# Get sprints from board
+jira_get_board_sprints("BOARD_ID", state="active")
 
-### Sprints
-```python
-# Get sprints from board (active, future, closed)
-jira_get_board_sprints("39", state="active")
-jira_get_board_sprints("39", state="future")
-
-# Find issues in current sprint
-jira_search("project = MIGRATIONS AND Sprint in openSprints()")
-
-# Find issues not in any sprint
-jira_search("project = MIGRATIONS AND Sprint IS EMPTY AND status != Done")
-```
-
-### Custom Fields Discovery
-```python
-# Get all fields (find custom field IDs)
+# Find custom field IDs
 jira_get_fields()
-
-# Get issue with all fields to see what's available
-jira_get_issue("MIGRATIONS-1", expand="names")
 ```
 
-### Workflow & Statuses
-```python
-# See available transitions for an issue
-jira_get_transitions("MIGRATIONS-123")
+## Agent Configuration
 
-# Find issues by status
-jira_search("project = MIGRATIONS AND status = 'In Progress'")
+The installer updates these config files:
 
-# Find blocked issues
-jira_search("project = MIGRATIONS AND status = 'BLOCKED'")
+| Agent | Config Path |
+|-------|-------------|
+| Kiro | `~/.kiro/settings/mcp.json` |
+| Claude Desktop | `~/Library/Application Support/Claude/claude_desktop_config.json` |
+| Cursor | `~/.cursor/mcp.json` |
+
+## Customizing for Your Project
+
+1. Fork this repository
+2. Edit `skill/SKILL.md` with your project details:
+   - Project key, board IDs
+   - Custom field mappings
+   - Workflow statuses
+   - Team members
+   - JQL examples
+3. Install with your custom guide:
+   ```bash
+   npx @andrekurait/jira-mcp-skill --guide ./skill/SKILL.md
+   ```
+
+## Example: MIGRATIONS Project
+
+This repo includes a sample SKILL.md for the MIGRATIONS project:
+
+```bash
+npx @andrekurait/jira-mcp-skill \
+  --url https://opensearch.atlassian.net \
+  --email your@email.com \
+  --token YOUR_TOKEN \
+  --project MIGRATIONS \
+  --guide ./skill/SKILL.md
 ```
 
-### Labels
-```python
-# Find all labels in use
-jira_search("project = MIGRATIONS AND labels IS NOT EMPTY", fields=["labels"])
+See [skill/SKILL.md](skill/SKILL.md) for the full project guide including:
+- Custom fields (`customfield_10032` for Story Points)
+- Sprint management (Board ID 39)
+- 20 components with descriptions
+- Workflow states and transitions
+- Ticket writing templates
 
-# Find issues by label
-jira_search("project = MIGRATIONS AND labels = 'Proxy'")
+## Troubleshooting
+
+### MCP not loading
+Restart your AI agent after installation.
+
+### Authentication errors
+1. Verify API token at [Atlassian API Tokens](https://id.atlassian.com/manage-profile/security/api-tokens)
+2. Check email matches your Atlassian account
+3. Ensure URL has no trailing slash
+
+### Tools not appearing
+Check that `uvx` is installed: `which uvx`
+
+If not, install [uv](https://github.com/astral-sh/uv):
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-### Issue Links
-```python
-# Find blocking issues
-jira_search("project = MIGRATIONS AND issueFunction in linkedIssuesOf('project = MIGRATIONS', 'blocks')")
+## Contributing
 
-# Get issue with links
-jira_get_issue("MIGRATIONS-123", expand="changelog,links")
-```
+Contributions welcome! Please open an issue or PR.
+
+## Credits
+
+- [sooperset/mcp-atlassian](https://github.com/sooperset/mcp-atlassian) - The MCP server
+- [Orchestra-Research/AI-research-SKILLs](https://github.com/Orchestra-Research/AI-research-SKILLs) - Skill pattern inspiration
 
 ## License
 
