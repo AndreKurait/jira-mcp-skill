@@ -21,6 +21,11 @@ One-command installer for [mcp-atlassian](https://github.com/sooperset/mcp-atlas
 npx @andrekurait/jira-mcp-skill
 ```
 
+Or install directly from GitHub:
+```bash
+npx github:AndreKurait/jira-mcp-skill
+```
+
 You'll be prompted for:
 - Jira URL (e.g., `https://yourcompany.atlassian.net`)
 - Email address
