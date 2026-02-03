@@ -5,7 +5,7 @@ import path from 'path';
 import os from 'os';
 import https from 'https';
 
-const VERSION = '1.0.3';
+const VERSION = '1.0.4';
 const GITHUB_REPO = 'AndreKurait/jira-mcp-skill';
 const SKILL_DIR = path.join(os.homedir(), '.jira-mcp-skill');
 const VERSION_FILE = path.join(SKILL_DIR, '.version');
@@ -149,16 +149,17 @@ async function interactiveSetup() {
   log('\n🔧 Jira MCP Skill - Interactive Setup\n', colors.cyan);
   log('This installs mcp-atlassian and configures your AI agents.\n', colors.blue);
   
-  const jiraUrl = await prompt('Jira URL (e.g., https://company.atlassian.net): ');
-  if (!jiraUrl) { log('URL required', colors.red); process.exit(1); }
+  const defaultUrl = 'https://opensearch.atlassian.net';
+  const jiraUrl = await prompt(`Jira URL [${defaultUrl}]: `) || defaultUrl;
   
   const email = await prompt('Jira Email: ');
   if (!email) { log('Email required', colors.red); process.exit(1); }
   
+  log(`\n💡 Get your API token: ${colors.blue}https://id.atlassian.com/manage-profile/security/api-tokens${colors.reset}`, colors.yellow);
   const token = await promptSecret('API Token (hidden): ');
   if (!token) { log('Token required', colors.red); process.exit(1); }
   
-  const projectKey = await prompt('Default Project Key (e.g., MIGRATIONS) [optional]: ');
+  const projectKey = await prompt('Default Project Key [MIGRATIONS]: ') || 'MIGRATIONS';
   return { jiraUrl, email, token, projectKey };
 }
 

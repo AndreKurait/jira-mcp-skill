@@ -1,6 +1,6 @@
 {
   "name": "@andrekurait/jira-mcp-skill",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "One-command installer for mcp-atlassian with project context - works with Kiro, Claude, Cursor",
   "type": "module",
   "bin": {
