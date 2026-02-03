@@ -23,7 +23,15 @@ npx @andrekurait/jira-mcp-skill
 
 Or install directly from GitHub:
 ```bash
-npx github:AndreKurait/jira-mcp-skill
+npx github:AndreKurait/jira-mcp-skill/packages/jira-mcp-skill
+```
+
+Or clone and run locally:
+```bash
+git clone https://github.com/AndreKurait/jira-mcp-skill.git
+cd jira-mcp-skill/packages/jira-mcp-skill
+npm install && npm run build
+node build/cli.js
 ```
 
 You'll be prompted for:
