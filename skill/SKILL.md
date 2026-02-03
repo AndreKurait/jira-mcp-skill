@@ -2,7 +2,74 @@
 
 > **Skill Version:** 1.0.0 | Check for updates: `npx @andrekurait/jira-mcp-skill@latest --version`
 
+---
+
+## 🔄 Skill Improvement Protocol
+
+When you notice patterns in how I should handle Jira tasks differently, tell me! For example:
+- "Always specify a sprint when creating tasks"
+- "Default to Story type instead of Task"
+- "Always add the RFS component for snapshot-related work"
+
+**I'll ask:** "Would you like me to add this as a permanent rule in the skill?"
+
+If yes, here's how to contribute the improvement:
+
+### Quick Contribution Guide
+
+```bash
+# 1. Fork the repo (one-time)
+gh repo fork AndreKurait/jira-mcp-skill --clone
+cd jira-mcp-skill
+
+# 2. Create a branch for your change
+git checkout -b feature/your-improvement-name
+
+# 3. Edit the skill guide
+# Open skill/SKILL.md and add your rule to the appropriate section
+
+# 4. Commit and push
+git add skill/SKILL.md
+git commit -m "Add rule: [describe your rule]"
+git push origin feature/your-improvement-name
+
+# 5. Create PR
+gh pr create --title "Add rule: [your rule]" --body "This adds guidance to [explain what it does]"
+```
+
+### Where to Add Rules
+
+| Rule Type | Section to Edit |
+|-----------|-----------------|
+| Default field values | "Issue Creation Defaults" |
+| Required fields | "Required Fields for Issue Creation" |
+| Workflow guidance | "Workflow Statuses" |
+| Component selection | "Components" |
+| Sprint handling | "Sprints" |
+
+---
+
 ## Project Overview
+
+### Issue Creation Defaults
+
+When creating issues, apply these defaults unless specified otherwise:
+
+| Field | Default Value | Notes |
+|-------|---------------|-------|
+| Issue Type | Story | Use Task only for non-user-facing work |
+| Fix Version | `not-scheduled-for-release` (ID: 10021) | Required field |
+| Priority | Medium | Escalate only when explicitly urgent |
+| Sprint | Current active sprint | Ask user if unsure |
+
+### Examples of Good Prompts → Actions
+
+| User Says | I Should Do |
+|-----------|-------------|
+| "Create a task for X" | Create a **Story** (not Task), ask about sprint |
+| "Add this to the backlog" | Set fixVersion to `not-scheduled-for-release` |
+| "This is urgent" | Set priority to High, add to current sprint |
+| "Create under the RFS epic" | Set parent field, add RFS component |
 
 - **Project Key**: MIGRATIONS
 - **Project Name**: Migration and Upgrades
