@@ -1,5 +1,10 @@
 # Jira MCP Skill
 
+[![npm version](https://img.shields.io/npm/v/@andrekurait/jira-mcp-skill.svg)](https://www.npmjs.com/package/@andrekurait/jira-mcp-skill)
+[![npm downloads](https://img.shields.io/npm/dm/@andrekurait/jira-mcp-skill.svg)](https://www.npmjs.com/package/@andrekurait/jira-mcp-skill)
+[![GitHub release](https://img.shields.io/github/v/release/AndreKurait/jira-mcp-skill)](https://github.com/AndreKurait/jira-mcp-skill/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 > **One-command installer for [mcp-atlassian](https://github.com/sooperset/mcp-atlassian) with MIGRATIONS project context**
 
 ## Quick Install
