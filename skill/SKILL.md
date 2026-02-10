@@ -306,6 +306,22 @@ project = MIGRATIONS AND "Story Points" IS EMPTY AND issuetype = Task
 
 # Ticket Writing Best Practices
 
+## Jira Wiki Markup Formatting
+
+When writing descriptions, use Jira wiki markup (not markdown):
+
+| Element | Jira Markup | NOT This |
+|---------|-------------|----------|
+| Header 2 | `h2. Title` | `## Title` |
+| Header 3 | `h3. Title` | `### Title` |
+| Bold | `*bold*` | `**bold**` |
+| Code inline | `{{code}}` | `` `code` `` |
+| Bullet list | `* item` | `- item` |
+| Numbered list | `# item` (avoid - can render as header) | `1. item` |
+| Checkbox | `* [ ] item` | `- [ ] item` |
+
+**Important:** Avoid `#` for numbered lists - it can render incorrectly. Use `*` bullets or explicit numbers instead.
+
 ## Summary Guidelines
 
 ✅ **Good Summaries:**
@@ -515,3 +531,22 @@ project = MIGRATIONS AND fixVersion = "MAv3.0"
 -- Epics with children
 project = MIGRATIONS AND issuetype = Epic AND "Epic Link" IS NOT EMPTY
 ```
+
+
+---
+
+## Refinement Request Output
+
+After creating or updating an issue, always provide a refinement request message for Slack in this format:
+
+**Text:**
+```
+REFINEMENT REQUEST | <ISSUE-KEY> | <Summary> | @bjpres @schohn
+```
+
+**Link:**
+```
+https://opensearch.atlassian.net/browse/<ISSUE-KEY>
+```
+
+This allows the user to paste the text into Slack, then paste the link separately so Slack auto-links it.
