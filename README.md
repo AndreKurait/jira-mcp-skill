@@ -6,7 +6,7 @@
 
 Configure selected Kiro CLI, Claude Desktop, and Cursor clients to launch [mcp-atlassian](https://github.com/sooperset/mcp-atlassian), with an optional project guide. This package writes client configuration; the client runs the MCP server through `uvx` when it starts.
 
-The instructions below describe the current source tree. See [GitHub releases](https://github.com/AndreKurait/jira-mcp-skill/releases) for published versions and [CHANGELOG.md](https://github.com/AndreKurait/jira-mcp-skill/blob/main/CHANGELOG.md) for unreleased changes.
+The instructions below describe **2.0.0**. See [GitHub releases](https://github.com/AndreKurait/jira-mcp-skill/releases) for published versions and [CHANGELOG.md](https://github.com/AndreKurait/jira-mcp-skill/blob/main/CHANGELOG.md) for changes. A checkout of this repository and an older published npm package can have different behavior.
 
 ## Requirements
 
@@ -15,6 +15,18 @@ The instructions below describe the current source tree. See [GitHub releases](h
 - A Jira URL, account email, and [Atlassian API token](https://id.atlassian.com/manage-profile/security/api-tokens).
 
 The generated configuration uses email/API-token authentication for Jira and, when configured, Confluence. For OAuth, Server/Data Center personal access tokens, or separate credentials per service, follow the upstream [mcp-atlassian authentication documentation](https://github.com/sooperset/mcp-atlassian#documentation) and configure the client directly. This installer does not test your credentials or Jira permissions.
+
+## Upgrading from 1.x
+
+Version 2 requires Node.js 22 or later and an existing `uvx` installation. For scripts and other non-interactive setup, add at least one explicit `--agent` and supply complete credentials. Automatic client detection and tenant/project defaults have been removed. Continue to use `--guide` for a custom guide; add `--update-hook` separately for Kiro startup notifications. Setup no longer checks GitHub for releases automatically.
+
+Keep a private backup of the client files you intend to update, then run the new installer for those clients. Once 2.0.0 is published, verify the downloaded package with:
+
+```sh
+npx @andrekurait/jira-mcp-skill@2.0.0 --version
+```
+
+Updating a global npm installation or downloading the new CLI does not change existing client JSON, guides, or installed hooks. Rerun setup to apply the new behavior. Include `--update-hook` when refreshing an existing Kiro notification script; omitting it preserves the old hook. The installer cannot recover settings already lost to an older installation.
 
 ## Quick start
 
