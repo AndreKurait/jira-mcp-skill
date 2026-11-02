@@ -1,277 +1,117 @@
 #!/usr/bin/env node
-import readline from 'readline';
-import fs from 'fs';
-import path from 'path';
-import os from 'os';
-import https from 'https';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import readline from 'node:readline';
+import { Writable } from 'node:stream';
+import { parseArgs } from 'node:util';
+import { createRequire } from 'node:module';
+import { AGENT_NAMES, agentConfigPath, install, type AgentName } from './installer.js';
+import { VERSION } from './version.js';
 
-const VERSION = '1.0.4';
-const GITHUB_REPO = 'AndreKurait/jira-mcp-skill';
-const SKILL_DIR = path.join(os.homedir(), '.jira-mcp-skill');
-const VERSION_FILE = path.join(SKILL_DIR, '.version');
+const { fetchLatestVersion, isNewerVersion } = createRequire(import.meta.url)('./version-hook.cjs');
 
-const AGENTS = {
-  kiro: { name: 'Kiro', configPath: path.join(os.homedir(), '.kiro', 'settings', 'mcp.json'), configDir: path.join(os.homedir(), '.kiro', 'settings') },
-  claude: { name: 'Claude Desktop', configPath: path.join(os.homedir(), 'Library', 'Application Support', 'Claude', 'claude_desktop_config.json'), configDir: path.join(os.homedir(), 'Library', 'Application Support', 'Claude') },
-  cursor: { name: 'Cursor', configPath: path.join(os.homedir(), '.cursor', 'mcp.json'), configDir: path.join(os.homedir(), '.cursor') },
-};
-
-const colors = { reset: '\x1b[0m', green: '\x1b[32m', yellow: '\x1b[33m', blue: '\x1b[34m', red: '\x1b[31m', cyan: '\x1b[36m' };
-const log = (msg: string, color = colors.reset) => console.log(`${color}${msg}${colors.reset}`);
-
-async function checkForUpdates(): Promise<{ latest: string; current: string; outdated: boolean } | null> {
-  return new Promise((resolve) => {
-    const req = https.get(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`, {
-      headers: { 'User-Agent': 'jira-mcp-skill' }
-    }, (res) => {
-      let data = '';
-      res.on('data', chunk => data += chunk);
-      res.on('end', () => {
-        try {
-          const release = JSON.parse(data);
-          const latest = release.tag_name?.replace(/^v/, '') || VERSION;
-          const outdated = latest !== VERSION;
-          resolve({ latest, current: VERSION, outdated });
-        } catch { resolve(null); }
-      });
+function prompt(question: string, secret = false): Promise<string> {
+  if (!process.stdin.isTTY) throw new Error('Interactive input requires a terminal; use options and JIRA_API_TOKEN or --token-file');
+  return new Promise((resolve, reject) => {
+    let muted = false;
+    let answered = false;
+    const output = new Writable({ write(chunk, _encoding, callback) {
+      if (!muted) process.stdout.write(chunk);
+      callback();
+    } });
+    const rl = readline.createInterface({ input: process.stdin, output, terminal: true });
+    rl.on('SIGINT', () => { rl.close(); });
+    rl.on('close', () => { if (!answered) reject(new Error('Setup cancelled before changes were made')); });
+    rl.question(question, answer => {
+      answered = true;
+      muted = false;
+      rl.close();
+      if (secret) console.log();
+      resolve(answer.trim());
     });
-    req.on('error', () => resolve(null));
-    req.setTimeout(3000, () => { req.destroy(); resolve(null); });
+    muted = secret;
   });
-}
-
-function getInstalledVersion(): string | null {
-  try { return fs.readFileSync(VERSION_FILE, 'utf8').trim(); } catch { return null; }
-}
-
-function saveInstalledVersion() {
-  if (!fs.existsSync(SKILL_DIR)) fs.mkdirSync(SKILL_DIR, { recursive: true });
-  fs.writeFileSync(VERSION_FILE, VERSION);
-}
-
-function prompt(q: string): Promise<string> {
-  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-  return new Promise(r => rl.question(q, (a: string) => { rl.close(); r(a.trim()); }));
-}
-
-async function promptSecret(q: string): Promise<string> {
-  return new Promise(r => {
-    process.stdout.write(q);
-    const stdin = process.stdin;
-    stdin.setRawMode?.(true); stdin.resume(); stdin.setEncoding('utf8');
-    let input = '';
-    const onData = (c: string) => {
-      if (c === '\n' || c === '\r') { stdin.setRawMode?.(false); stdin.removeListener('data', onData); console.log(); r(input); }
-      else if (c === '\u0003') process.exit();
-      else if (c === '\u007F') input = input.slice(0, -1);
-      else input += c;
-    };
-    stdin.on('data', onData);
-  });
-}
-
-function generateMcpConfig(config: { jiraUrl: string; email: string; token: string }) {
-  return {
-    'mcp-atlassian': {
-      command: 'uvx',
-      args: ['mcp-atlassian'],
-      env: {
-        JIRA_URL: config.jiraUrl,
-        JIRA_USERNAME: config.email,
-        JIRA_API_TOKEN: config.token,
-        CONFLUENCE_URL: config.jiraUrl.replace('.atlassian.net', '.atlassian.net/wiki'),
-        CONFLUENCE_USERNAME: config.email,
-        CONFLUENCE_API_TOKEN: config.token,
-      },
-    },
-  };
-}
-
-interface AgentConfig { mcpServers?: Record<string, unknown> }
-
-function updateAgentConfig(agentKey: keyof typeof AGENTS, mcpConfig: Record<string, unknown>) {
-  const agent = AGENTS[agentKey];
-  if (!fs.existsSync(agent.configDir)) fs.mkdirSync(agent.configDir, { recursive: true });
-  
-  let config: AgentConfig = {};
-  if (fs.existsSync(agent.configPath)) {
-    try { config = JSON.parse(fs.readFileSync(agent.configPath, 'utf8')); } catch {}
-  }
-  
-  if (!config.mcpServers) config.mcpServers = {};
-  config.mcpServers['mcp-atlassian'] = mcpConfig['mcp-atlassian'];
-  fs.writeFileSync(agent.configPath, JSON.stringify(config, null, 2));
-}
-
-function installSkillContext(projectGuide: string) {
-  if (!fs.existsSync(SKILL_DIR)) fs.mkdirSync(SKILL_DIR, { recursive: true });
-  const skillPath = path.join(SKILL_DIR, 'SKILL.md');
-  
-  // Inject current version into SKILL.md
-  const guideWithVersion = projectGuide.replace('{{VERSION}}', VERSION);
-  fs.writeFileSync(skillPath, guideWithVersion);
-  
-  // Install version check hook script
-  const hookSrc = path.join(__dirname, 'version-hook.cjs');
-  const hookDest = path.join(SKILL_DIR, 'version-hook.cjs');
-  if (fs.existsSync(hookSrc)) {
-    fs.copyFileSync(hookSrc, hookDest);
-    fs.chmodSync(hookDest, '755');
-  }
-  
-  // Add hook to Kiro agent config
-  const kiroAgentDir = path.join(os.homedir(), '.kiro', 'agents');
-  if (!fs.existsSync(kiroAgentDir)) fs.mkdirSync(kiroAgentDir, { recursive: true });
-  const defaultAgentPath = path.join(kiroAgentDir, 'default.json');
-  
-  let agentConfig: any = {};
-  if (fs.existsSync(defaultAgentPath)) {
-    try { agentConfig = JSON.parse(fs.readFileSync(defaultAgentPath, 'utf8')); } catch {}
-  }
-  if (!agentConfig.hooks) agentConfig.hooks = {};
-  if (!agentConfig.hooks.agentSpawn) agentConfig.hooks.agentSpawn = [];
-  // Remove old hook if exists
-  agentConfig.hooks.agentSpawn = agentConfig.hooks.agentSpawn.filter((h: any) => !h.command?.includes('jira-mcp-skill'));
-  // Add new hook
-  agentConfig.hooks.agentSpawn.push({ command: `node ${hookDest}` });
-  fs.writeFileSync(defaultAgentPath, JSON.stringify(agentConfig, null, 2));
-  
-  const kiroSteering = path.join(os.homedir(), '.kiro', 'steering');
-  if (!fs.existsSync(kiroSteering)) fs.mkdirSync(kiroSteering, { recursive: true });
-  
-  const kiroSkillPath = path.join(kiroSteering, 'jira-skill.md');
-  if (fs.existsSync(kiroSkillPath)) fs.unlinkSync(kiroSkillPath);
-  fs.symlinkSync(skillPath, kiroSkillPath);
-  return skillPath;
-}
-
-async function interactiveSetup() {
-  log('\n🔧 Jira MCP Skill - Interactive Setup\n', colors.cyan);
-  log('This installs mcp-atlassian and configures your AI agents.\n', colors.blue);
-  
-  const defaultUrl = 'https://opensearch.atlassian.net';
-  const jiraUrl = await prompt(`Jira URL [${defaultUrl}]: `) || defaultUrl;
-  
-  const email = await prompt('Jira Email: ');
-  if (!email) { log('Email required', colors.red); process.exit(1); }
-  
-  log(`\n💡 Get your API token: ${colors.blue}https://id.atlassian.com/manage-profile/security/api-tokens${colors.reset}`, colors.yellow);
-  const token = await promptSecret('API Token (hidden): ');
-  if (!token) { log('Token required', colors.red); process.exit(1); }
-  
-  const projectKey = await prompt('Default Project Key [MIGRATIONS]: ') || 'MIGRATIONS';
-  return { jiraUrl, email, token, projectKey };
-}
-
-async function configureAgents(mcpConfig: Record<string, unknown>) {
-  const detected = (Object.keys(AGENTS) as (keyof typeof AGENTS)[]).filter(k => fs.existsSync(AGENTS[k].configDir));
-  
-  if (detected.length === 0) {
-    log('\n⚠️  No AI agents detected. Creating Kiro config...', colors.yellow);
-    updateAgentConfig('kiro', mcpConfig);
-    return;
-  }
-
-  log(`\n🔍 Detected: ${detected.map(k => AGENTS[k].name).join(', ')}`, colors.blue);
-  
-  for (const key of detected) {
-    const yn = await prompt(`Configure ${AGENTS[key].name}? (Y/n): `);
-    if (yn.toLowerCase() !== 'n') {
-      updateAgentConfig(key, mcpConfig);
-      log(`✅ Configured ${AGENTS[key].name}`, colors.green);
-    }
-  }
 }
 
 function printHelp() {
-  console.log(`
-Jira MCP Skill Installer
+  console.log(`Jira MCP Skill ${VERSION}
+Configure selected clients to run mcp-atlassian through an existing uvx installation.
 
-Installs mcp-atlassian and project-specific context for AI agents.
+Usage: jira-mcp-skill [options]
 
-Usage: npx @andrekurait/jira-mcp-skill [options]
+  --url <url>             Jira URL (or JIRA_URL)
+  --email <email>         Jira account email (or JIRA_USERNAME)
+  --token-file <path>     Read the API token from a file (or use JIRA_API_TOKEN)
+  --token <value>         Legacy option; exposes the token in process arguments
+  --confluence-url <url>  Separate Confluence URL; inferred for Atlassian Cloud
+  --project <key>         Optional key for {{PROJECT_KEY}} in a custom guide
+  --agent <name>          kiro, claude, or cursor; repeat for multiple clients
+  --guide <path>          Copy a custom guide; register steering only for selected Kiro
+  --update-hook          Opt in to a daily GitHub release check on Kiro startup
+  --check-updates        Check the public GitHub release (no automatic download)
+  --config-root <path>    Root for client config paths (default: your home directory)
+  --version, -v          Print the package version
+  --help, -h             Print this help
 
-Options:
-  --url       Jira URL
-  --email     Jira email  
-  --token     API token
-  --project   Default project key
-  --guide     Path to project guide markdown file
+Non-interactive example (provide JIRA_API_TOKEN through your environment):
+  jira-mcp-skill --url https://example.atlassian.net --email you@example.com --agent cursor
 
-Examples:
-  npx @andrekurait/jira-mcp-skill
-  npx @andrekurait/jira-mcp-skill --url https://x.atlassian.net --email me@x.com --token xxx
-  npx @andrekurait/jira-mcp-skill --guide ./my-project-guide.md
+Credentials are stored as plaintext in client JSON. Unix files are written with mode 0600.
 `);
 }
 
 async function main() {
-  const args = process.argv.slice(2);
-  if (args.includes('--help') || args.includes('-h')) { printHelp(); return; }
-  if (args.includes('--version') || args.includes('-v')) { console.log(VERSION); return; }
+  const { values } = parseArgs({ options: {
+    url: { type: 'string' }, email: { type: 'string' }, token: { type: 'string' },
+    'token-file': { type: 'string' }, 'confluence-url': { type: 'string' },
+    project: { type: 'string' }, guide: { type: 'string' },
+    agent: { type: 'string', multiple: true }, 'config-root': { type: 'string' },
+    'update-hook': { type: 'boolean' }, 'check-updates': { type: 'boolean' },
+    version: { type: 'boolean', short: 'v' }, help: { type: 'boolean', short: 'h' },
+  }, strict: true });
+  if (values.help) { printHelp(); return; }
+  if (values.version) { console.log(VERSION); return; }
 
-  // Check for updates on startup
-  log(`\n📦 Jira MCP Skill v${VERSION}`, colors.cyan);
-  const update = await checkForUpdates();
-  if (update?.outdated) {
-    log(`\n⚠️  Update available: v${update.current} → v${update.latest}`, colors.yellow);
-    log(`   Run: npx @andrekurait/jira-mcp-skill@latest`, colors.yellow);
-    const yn = await prompt('Continue with current version? (Y/n): ');
-    if (yn.toLowerCase() === 'n') {
-      log('Run: npx @andrekurait/jira-mcp-skill@latest', colors.blue);
-      return;
-    }
+  if (values['check-updates']) {
+    const latest: string | null = await fetchLatestVersion();
+    console.log(latest === null ? 'Could not check GitHub releases; no changes made.' :
+      isNewerVersion(latest, VERSION) ? `Update available: ${VERSION} → ${latest}` : `No newer stable release found (installed ${VERSION}).`);
+    return;
   }
 
-  const urlIdx = args.indexOf('--url');
-  const emailIdx = args.indexOf('--email');
-  const tokenIdx = args.indexOf('--token');
-  const guideIdx = args.indexOf('--guide');
-  
-  let config;
-  if (urlIdx !== -1 && emailIdx !== -1 && tokenIdx !== -1) {
-    config = {
-      jiraUrl: args[urlIdx + 1],
-      email: args[emailIdx + 1],
-      token: args[tokenIdx + 1],
-      projectKey: args.indexOf('--project') !== -1 ? args[args.indexOf('--project') + 1] : '',
-    };
-    log('\n🚀 Automatic Setup Mode\n', colors.cyan);
-  } else {
-    config = await interactiveSetup();
+  const root = path.resolve(values['config-root'] || os.homedir());
+  let jiraUrl = values.url || process.env.JIRA_URL;
+  let email = values.email || process.env.JIRA_USERNAME;
+  if (values.token && values['token-file']) throw new Error('Use one token source: --token-file or --token');
+  let token = values['token-file'] ? fs.readFileSync(path.resolve(values['token-file']), 'utf8').trim() :
+    values.token || process.env.JIRA_API_TOKEN;
+  if (values.token) console.warn('Warning: token values in process arguments are visible; use JIRA_API_TOKEN or a token file.');
+  if (!jiraUrl || !email || !token) {
+    if (!process.stdin.isTTY) throw new Error('Provide Jira URL, email, and a token via options/environment; no files were changed');
+    console.log('Configure Jira MCP. Tokens will be stored as plaintext in the selected client configurations.');
+    jiraUrl ||= await prompt('Jira URL (for example, https://example.atlassian.net): ');
+    email ||= await prompt('Jira email: ');
+    token ||= await prompt('API token (hidden): ', true);
   }
 
-  const mcpConfig = generateMcpConfig(config);
-  await configureAgents(mcpConfig);
-  
-  const guidePath = guideIdx !== -1 ? args[guideIdx + 1] : null;
-  if (guidePath && fs.existsSync(guidePath)) {
-    const guide = fs.readFileSync(guidePath, 'utf8');
-    const skillPath = installSkillContext(guide);
-    log(`\n📚 Installed project guide to ${skillPath}`, colors.green);
-  } else {
-    log('\n💡 Tip: Use --guide <path> to install a project-specific guide', colors.yellow);
+  let selected = values.agent ?? [];
+  if (!selected.length) {
+    if (!process.stdin.isTTY) throw new Error('Non-interactive setup requires --agent kiro, --agent claude, or --agent cursor');
+    const detected = AGENT_NAMES.filter(agent => fs.existsSync(path.dirname(agentConfigPath(root, agent))));
+    const selection = await prompt(`Clients to configure, comma-separated (kiro, claude, cursor)${detected.length ? ` [${detected.join(',')}]` : ''}: `);
+    selected = selection ? selection.split(',').map(name => name.trim()) : detected;
   }
+  if (!selected.length || selected.some(name => !AGENT_NAMES.includes(name as AgentName))) throw new Error('Select supported clients: kiro, claude, cursor');
 
-  // Save installed version
-  saveInstalledVersion();
-
-  log(`
-${colors.green}✅ Setup complete!${colors.reset}
-
-${colors.cyan}What was installed:${colors.reset}
-  • mcp-atlassian MCP server configured for your agents
-  • Uses: ${colors.blue}https://github.com/sooperset/mcp-atlassian${colors.reset}
-
-${colors.cyan}Next steps:${colors.reset}
-  1. Restart your AI agent (Kiro, Claude, Cursor)
-  2. Ask: "Search for my open issues in ${config.projectKey || 'PROJECT'}"
-
-${colors.blue}Available tools (from mcp-atlassian):${colors.reset}
-  • jira_search, jira_get_issue, jira_create_issue
-  • jira_update_issue, jira_transition_issue
-  • confluence_search, confluence_get_page, confluence_create_page
-`);
+  const result = install({
+    root, agents: selected as AgentName[],
+    settings: { jiraUrl, email, token, confluenceUrl: values['confluence-url'], projectKey: values.project },
+    guidePath: values.guide, updateHook: values['update-hook'],
+  });
+  console.log(`Configured: ${result.agents.join(', ')}.`);
+  if (result.guidePath) console.log(`Project guide: ${result.guidePath}`);
+  console.log('Restart the selected client(s). They will launch uvx mcp-atlassian; this installer does not download or run the server.');
 }
 
-main().catch(e => { log(`Error: ${e.message}`, colors.red); process.exit(1); });
+main().catch(error => { console.error(`Error: ${(error as Error).message}`); process.exitCode = 1; });
