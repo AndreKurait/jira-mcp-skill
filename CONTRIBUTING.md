@@ -27,4 +27,26 @@ Edit the root `README.md` and `LICENSE`; the build copies them into the npm pack
 
 Before a release, run `npm test` from a clean checkout, update the manifest and lockfile versions together, and inspect `npm pack --dry-run`. Versions used by the CLI and packaged hook come from `package.json`; installed hooks read the adjacent `.version` marker. Packaging rebuilds before creating an archive. Publishing remains a maintainer action; CI does not publish or require package-registry credentials.
 
+## Publishing a release
+
+Update the package manifest and both lockfile version fields, the changelog, and
+the root README together. Run `npm test` from `packages/jira-mcp-skill`; commit
+the package README copied by the build. Wait for the release preparation and
+merged commit's Linux, macOS, and Windows CI checks to pass.
+
+Publishing npm and creating a GitHub release are separate operations; neither
+a main-branch push nor a tag publishes this package. From the tested checkout,
+run `npm pack` in `packages/jira-mcp-skill`, inspect its file list, and retain the
+resulting versioned archive. With explicit publication authorization and npm
+maintainer credentials, publish that inspected archive to the public npm
+registry with public access. The package's `publishConfig` selects that registry
+and access level; it does not supply authentication.
+
+Verify the published npm version and package contents before creating the
+matching `vX.Y.Z` GitHub tag and release at the same tested source commit.
+Existing update hooks check GitHub Releases, while `npx` downloads npm packages;
+announcing GitHub first can tell users to install a version npm does not yet
+provide. Include the version's migration notes and exact source commit in the
+GitHub release. Never replace an existing package version or move a published tag.
+
 Report bugs with the OS, Node version, package version, selected client, and a minimal redacted reproduction. Do not include Jira tokens, customer data, or a complete client config.

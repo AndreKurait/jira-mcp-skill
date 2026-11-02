@@ -1,6 +1,6 @@
 {
   "name": "@andrekurait/jira-mcp-skill",
-  "version": "1.0.5",
+  "version": "2.0.0",
   "description": "Configure Jira/Confluence MCP clients with optional project context",
   "type": "module",
   "bin": {
@@ -32,6 +32,10 @@
     "skill"
   ],
   "license": "MIT",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/AndreKurait/jira-mcp-skill",
