@@ -1,17 +1,19 @@
 {
   "name": "@andrekurait/jira-mcp-skill",
   "version": "1.0.5",
-  "description": "One-command installer for mcp-atlassian with project context - works with Kiro, Claude, Cursor",
+  "description": "Configure Jira/Confluence MCP clients with optional project context",
   "type": "module",
   "bin": {
     "jira-mcp-skill": "./build/cli.js"
   },
   "files": [
     "build",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
-    "build": "tsc && chmod +x build/cli.js && cp src/version-hook.cjs build/ && cp ../../README.md .",
+    "build": "tsc && node scripts/build.mjs",
+    "test": "npm run build && node --test test/installer.test.mjs",
     "prepare": "npm run build"
   },
   "devDependencies": {
@@ -32,7 +34,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/AndreKurait/jira-mcp-skill"
+    "url": "https://github.com/AndreKurait/jira-mcp-skill",
+    "directory": "packages/jira-mcp-skill"
   },
-  "author": "AndreKurait"
+  "author": "AndreKurait",
+  "engines": {
+    "node": ">=22"
+  }
 }
